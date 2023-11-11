@@ -90,8 +90,6 @@ if is_admin():
         print(f"Adding the scheduled task.")
         execute_on_startup(task_name)
 
-
-    time.sleep(100)
     # Kill the Discord.exe process
     # for process in psutil.process_iter():
     #     if process.name() == "Discord.exe":
