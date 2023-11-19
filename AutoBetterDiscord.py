@@ -8,6 +8,7 @@ import sys
 import ctypes
 import time
 
+# Not working function
 def task_exists(task_name):
     cmd = f"schtasks /query /tn {task_name}"
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
@@ -70,30 +71,46 @@ if is_admin():
             download_file(nodejs_link, nodejs_file_name)
             subprocess.call(["msiexec", "/i", nodejs_file_name.replace("./", "")])
 
-    # Additional Windows commands
-    subprocess.run("git clone https://github.com/BetterDiscord/BetterDiscord.git", shell=True)
 
-    # Create a new shell to run npm commands
-    subprocess.run("cd BetterDiscord && git pull && npm install -g pnpm && pnpm install && pnpm build && pnpm inject", shell=True)
+    # Clone repo
+    batch_git_content = "git clone https://github.com/BetterDiscord/BetterDiscord.git"
+    with open('AutoBetterDiscord.bat', 'w') as batch_git:
+        batch_git.write(batch_git_content)
+    subprocess.run("Git_Source.bat", shell=True)
+
+    time.sleep(5)
+
+    # Update and inject BetterDiscord
+    batch_file_content = '@echo off\ncd BetterDiscord\ngit pull\necho Y | npm install -g pnpm\necho Y | pnpm install\necho Y | pnpm build\npnpm inject'
+    with open('AutoBetterDiscord.bat', 'w') as batch_file:
+        batch_file.write(batch_file_content)
+    subprocess.run("AutoBetterDiscord.bat", shell=True)
 
     # Task scheduling
     def execute_on_startup(task_name):
         script_path = sys.argv[0]  # Get the absolute path of the currently running Python script
         script_path = os.path.abspath(script_path)
+        script_directory = os.path.dirname(script_path)
+        batch_file_path = os.path.join(script_directory, f"{task_name}.bat")
 
         # Create the scheduled task on system startup
-        subprocess.run(f"schtasks /create /tn {task_name} /tr {script_path} /sc onlogon /ru System", shell=True)
+        subprocess.run(f"schtasks /create /tn {task_name} /tr {batch_file_path} /sc onlogon /ru System", shell=True)
 
-    if task_exists(task_name):
-        print(f"The scheduled task '{task_name}' already exists.")
-    else:
-        print(f"Adding the scheduled task.")
+    try :
         execute_on_startup(task_name)
+    except Exception :
+        print("Task already exist !")
+
+    # Debug
+    # time.sleep(100)
 
     # Kill the Discord.exe process
-    # for process in psutil.process_iter():
-    #     if process.name() == "Discord.exe":
-    #         process.kill()
+    for process in psutil.process_iter():
+        if process.name() == "Discord.exe":
+            process.kill()
+
+    # subprocess.run('C:\Users\%USERNAME%\AppData\Local\Discord\Update.exe', shell=True)
+
 
 else:
     ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
